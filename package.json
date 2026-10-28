@@ -1,0 +1,8 @@
+{
+  "name": "family-story-365",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test reader.test.mjs"
+  }
+}

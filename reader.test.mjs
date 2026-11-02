@@ -1,14 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 
-// 執行實際發布的單檔程式；替代瀏覽器 DOM 與語音引擎邊界。
+// 執行實際發布的共用閱讀器；替代瀏覽器 DOM 與語音引擎邊界。
 // 真實捲動位置、影片解碼與字幕另以瀏覽器驗證。
-const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
-const code = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1];
+const data = JSON.parse(readFileSync(new URL('./stories/ice-cream-money/story.json', import.meta.url)));
+const code = readFileSync(new URL('./assets/reader.js', import.meta.url), 'utf8')
+  .replace('export function startReader(data, basePath, slug) {', '').replace(/\}\s*$/, '');
 
-function launch(hash = '#story/theatre/0') {
+function launch(hash = '#story/theatre/0', slug = 'ice-cream-money') {
   const handlers = new Map();
   const elements = new Map();
   const effects = [];
@@ -35,7 +37,7 @@ function launch(hash = '#story/theatre/0') {
   };
   const location = {hash};
   const context = vm.createContext({
-    document, location,
+    document, location, data, slug, basePath: `./stories/${slug}/`,
     window: {
       speechSynthesis: {cancel() {effects.push(['cancel']);}, getVoices: () => [], addEventListener() {}},
       addEventListener(type, listener) {handlers.set(`window:${type}`, listener);},
@@ -165,4 +167,190 @@ test('開始逐頁播放及離開可見畫面時會暫停影片', () => {
   app.document.hidden = true;
   app.emit('document', 'visibilitychange');
   assert.ok(app.effects.some(([action, selector]) => action === 'pause' && selector === '#story-video'));
+});
+
+
+const json = path => JSON.parse(readFileSync(new URL(path, import.meta.url)));
+const catalog = json('./stories/index.json');
+
+test('每筆目錄必要欄位齊全、slug 唯一且資料夾與封面存在', () => {
+  const seen = new Set();
+  assert.ok(catalog.length > 0);
+  for (const entry of catalog) {
+    for (const key of ['slug', 'title', 'description', 'ages', 'cover', 'published']) {
+      assert.equal(typeof entry[key], 'string', `${entry.slug}: ${key}`);
+      assert.ok(entry[key].trim());
+    }
+    assert.match(entry.slug, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    assert.ok(!seen.has(entry.slug)); seen.add(entry.slug);
+    assert.ok(Number.isFinite(entry.order));
+    assert.match(entry.published, /^\d{4}-\d{2}-\d{2}$/);
+    for (const file of ['story.json', entry.cover]) {
+      assert.ok(existsSync(new URL(`./stories/${entry.slug}/${file}`, import.meta.url)), file);
+    }
+  }
+});
+
+test('所有故事四版本、注音、分頁與資產引用完整', () => {
+  for (const entry of catalog) {
+    const d = json(`./stories/${entry.slug}/story.json`);
+    const fileExists = file => {
+      assert.equal(typeof file, 'string');
+      assert.match(file, /^[a-zA-Z0-9_./-]+$/);
+      assert.ok(!file.startsWith('/') && !file.split('/').includes('..'));
+      assert.ok(existsSync(new URL(`./stories/${entry.slug}/${file}`, import.meta.url)), file);
+    };
+    for (const key of ['id', 'title', 'category', 'description', 'sourceId', 'sourceURL', 'verse', 'verseRef', 'prayer', 'original']) {
+      assert.ok(d.story[key]?.trim(), `${entry.slug}: ${key}`);
+    }
+    assert.equal(entry.title, d.story.title);
+    for (const key of ['title', 'question', 'activity']) assert.ok(d.discussion[key]?.trim());
+    assert.ok(d.scenes.length > 0);
+    for (const mode of ['toddler', 'theatre', 'comic', 'reader']) {
+      const v = d.versions[mode];
+      for (const key of ['age', 'label', 'subtitle', 'icon', 'intro']) assert.ok(v[key]?.trim());
+      assert.ok(v.pages.length > 0);
+      assert.equal(d.audio[mode].length, v.pages.length);
+      for (const page of v.pages) {
+        assert.ok(page.title?.trim());
+        assert.ok(d.scenes[page.scene]);
+        assert.ok(page.passages.length > 0);
+        for (const id of page.passages) assert.ok(d.passages[id], id);
+      }
+      d.audio[mode].forEach(fileExists);
+    }
+    for (const passage of Object.values(d.passages)) {
+      assert.ok(passage.text?.trim());
+      assert.equal([...passage.text].filter(c => /\p{Script=Han}/u.test(c)).length, passage.zhuyin.trim().split(/\s+/).length);
+    }
+    for (const key of ['video','subtitles','poster','productionKit','narrationKit','manifest']) {
+      assert.ok(d.media[key]);
+    }
+    Object.values(d.media).forEach(fileExists);
+    const manifest = json(`./stories/${entry.slug}/${d.media.manifest}`);
+    const files = Object.values(d.audio).flat();
+    assert.deepEqual(manifest.pages.map(page => page.file).sort(), [...files].sort());
+    for (const page of manifest.pages) {
+      fileExists(page.file);
+      assert.ok(files.includes(page.file));
+      assert.equal(createHash('sha256').update(readFileSync(new URL(`./stories/${entry.slug}/${page.file}`, import.meta.url))).digest('hex'), page.sha256);
+    }
+  }
+});
+
+test('第一篇原故事、逐句文字注音及四版本資料與搬移前完全一致', () => {
+  const original = {story: data.story, passages: data.passages, versions: data.versions};
+  const expected = readFileSync(new URL('./tests/original-content.sha256', import.meta.url), 'utf8').trim();
+  assert.equal(createHash('sha256').update(JSON.stringify(original)).digest('hex'), expected);
+});
+
+test('每篇閱讀進度分開，第一篇沿用原書籤', () => {
+  assert.equal(launch().run('storageKey'), 'family-story-365-progress-v1');
+  assert.equal(launch('#home', 'another-story').run('storageKey'), 'family-story-365-progress-v1:another-story');
+});
+
+test('每種分齡每一頁都引用該篇音檔，劇場引用該篇影片字幕與下載包', () => {
+  for (const [mode, version] of Object.entries(data.versions)) {
+    for (let i = 0; i < version.pages.length; i++) {
+      const html = launch(`#story/${mode}/${i}`).element('#main').innerHTML;
+      assert.ok(html.includes(`./stories/ice-cream-money/${data.audio[mode][i]}`));
+      assert.ok(html.includes('./stories/ice-cream-money/story-production-kit.zip'));
+    }
+  }
+  const html = launch().element('#main').innerHTML;
+  for (const key of ['video','subtitles','poster']) assert.ok(html.includes(`./stories/ice-cream-money/${data.media[key]}`));
+});
+
+async function loadStory(search, response = {ok: true, json: async () => data}) {
+  const requests = [], started = [], main = {innerHTML: ''};
+  const source = readFileSync(new URL('./assets/story-loader.js', import.meta.url), 'utf8').replace(/^import .*;\n/, '');
+  await vm.runInNewContext(`(async () => {${source}})()`, {
+    location: {search}, URLSearchParams,
+    document: {querySelector: () => main},
+    fetch: async url => {requests.push(url); return response;},
+    startReader: (...args) => started.push(args)
+  });
+  return {requests, started, main};
+}
+
+test('故事載入器預設第一篇，也能載入其他 slug', async () => {
+  for (const [search, slug] of [['', 'ice-cream-money'], ['?s=new-story', 'new-story']]) {
+    const app = await loadStory(search);
+    assert.deepEqual(app.requests, [`./stories/${slug}/story.json`]);
+    assert.equal(app.started[0][2], slug);
+  }
+});
+
+test('無效 slug 不發送請求，404 與網路失敗有返回目錄提示', async () => {
+  for (const search of ['?s=../private', '?s=%2Fetc', '?s=_template']) {
+    const app = await loadStory(search);
+    assert.equal(app.requests.length, 0);
+    assert.match(app.main.innerHTML, /回故事目錄/);
+  }
+  for (const response of [{ok: false}, {ok: true, json: async () => {throw new Error('網路失敗');}}]) {
+    const app = await loadStory('?s=missing', response);
+    assert.equal(app.started.length, 0);
+    assert.match(app.main.innerHTML, /回故事目錄/);
+  }
+});
+
+function domNode() {
+  return {children: [], textContent: '', append(...children) {this.children.push(...children);}};
+}
+async function loadCatalog(hash = '', entries = catalog, ok = true) {
+  const node = domNode(), redirects = [], requests = [];
+  const source = readFileSync(new URL('./assets/catalog.js', import.meta.url), 'utf8');
+  await vm.runInNewContext(`(async () => {${source}})()`, {
+    location: {hash, replace: url => redirects.push(url)},
+    window: {addEventListener() {}}, encodeURIComponent,
+    document: {querySelector: () => node, createElement: domNode},
+    fetch: async url => {requests.push(url); return {ok, json: async () => entries};}
+  });
+  return {node, redirects, requests};
+}
+
+test('首頁依清單排序產生多篇故事卡片與相對連結', async () => {
+  const extra = {...catalog[0], slug: 'second-story', title: '另一篇故事', order: 0};
+  const app = await loadCatalog('', [...catalog, extra]);
+  assert.equal(app.node.children.length, 2);
+  assert.equal(app.node.children[0].href, './story.html?s=second-story');
+  assert.equal(app.node.children[0].children[0].src, './stories/second-story/video-poster.png');
+});
+
+test('舊錨點保留路由導向第一篇，首頁跳讀錨點不誤導向', async () => {
+  for (const hash of ['#story/toddler/2', '#story/reader/1', '#home', '#library']) {
+    const app = await loadCatalog(hash);
+    assert.deepEqual(app.redirects, [`./story.html?s=ice-cream-money${hash}`]);
+    assert.equal(app.requests.length, 0);
+  }
+  assert.equal((await loadCatalog('#main')).redirects.length, 0);
+});
+
+test('空目錄與載入錯誤都有可讀提示', async () => {
+  assert.match((await loadCatalog('', [])).node.textContent, /準備中/);
+  assert.match((await loadCatalog('', [], false)).node.textContent, /無法載入/);
+});
+
+test('自主閱讀頁的教材編號由故事資料提供', () => {
+  const app = launch('#story/reader/0');
+  app.run("story.sourceId = '測試-20'");
+  try { assert.match(app.run('readingMarkup(versions.reader, versions.reader.pages[0])'), /測試-20 ／ 1/); }
+  finally { app.run("story.sourceId = '真-10'"); }
+});
+
+test('第一篇所有搬移資產與原提交位元組一致', () => {
+  for (const [file, hash] of Object.entries(json('./tests/original-assets.json'))) {
+    assert.equal(createHash('sha256').update(readFileSync(new URL(`./stories/ice-cream-money/${file}`, import.meta.url))).digest('hex'), hash, file);
+  }
+});
+
+test('新增故事的特殊標題在閱讀器中安全顯示', () => {
+  const app = launch('#story/reader/0');
+  const originalTitle = data.versions.reader.pages[0].title;
+  data.versions.reader.pages[0].title = '一起讀 "新故事" <第一頁>';
+  try {
+    const html = app.run('storyMarkup()');
+    assert.ok(html.includes('aria-label="第 1 頁：一起讀 &quot;新故事&quot; &lt;第一頁&gt;"'));
+    assert.ok(html.includes('<h2>一起讀 &quot;新故事&quot; &lt;第一頁&gt;</h2>'));
+  } finally {data.versions.reader.pages[0].title = originalTitle;}
 });

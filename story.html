@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#365e51">
+  <meta name="description" content="家庭時光365：一個故事，四種陪伴。為台灣親子家庭設計的繪本、劇場、漫畫與注音閱讀。">
+  <title>家庭時光365｜一起讀故事，慢慢長大</title>
+  <link rel="stylesheet" href="./assets/site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+  <header class="header">
+    <a class="brand" href="#home" aria-label="家庭時光365 首頁">
+      <span class="brand-mark" aria-hidden="true">✳</span>
+      <span>家庭時光<span class="brand-number">365</span><small>一起讀故事，慢慢長大</small></span>
+    </a>
+    <nav aria-label="主選單">
+      <a href="#home" data-nav="home">首頁</a>
+      <a href="./index.html" data-nav="library">故事書架</a>
+      <button id="settings-open" class="quiet" type="button">朗讀設定</button>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <footer class="footer">
+    <span>家庭時光365 <span class="footer-dot">·</span> 每天，留一點時間給彼此。</span>
+    <span>親子分齡故事</span>
+  </footer>
+  <dialog id="settings" aria-labelledby="settings-title">
+    <form method="dialog"><button class="close quiet" aria-label="關閉朗讀設定">✕</button></form>
+    <p class="eyebrow">一起聽故事</p><h2 id="settings-title">找到舒服的聲音</h2>
+    <p>預設播放離線 AI 模型預先產生的朗讀音檔；不需安裝中文語音，也不使用付費語音服務。</p>
+    <label class="toggle"><input id="device-voice" type="checkbox">改用這台裝置的中文聲音</label>
+    <label for="voice">朗讀聲音</label><select id="voice"></select>
+    <label for="rate">朗讀速度 <output id="rate-value">1.0 倍</output></label>
+    <input id="rate" type="range" min="0.6" max="1.2" value="1" step="0.1">
+    <p id="voice-status" class="note" role="status"></p>
+    <button id="voice-test" class="primary">試聽裝置聲音</button>
+    <p class="note">AI 女聲為一般中文試聽版，尚未完成台灣口音校對。裝置聲音的品質依手機或電腦而異。</p>
+  </dialog>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+  <noscript><p>這個故事網站需要啟用 JavaScript，才能切換版本與翻頁。</p></noscript>
+  <script type="module" src="./assets/story-loader.js"></script>
+</body>
+</html>

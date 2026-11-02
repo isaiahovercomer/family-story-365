@@ -1,0 +1,118 @@
+{
+  "story": {
+    "id": "new-story",
+    "title": "故事標題",
+    "category": "故事主題",
+    "sourceId": "教材編號",
+    "description": "一句故事簡介",
+    "sourceURL": "https://example.com/",
+    "verse": "經文內容",
+    "verseRef": "經文出處",
+    "prayer": "禱告內容",
+    "original": "完整原故事"
+  },
+  "passages": {
+    "a": {
+      "text": "你好。",
+      "zhuyin": "ㄋㄧˇ ㄏㄠˇ"
+    }
+  },
+  "versions": {
+    "toddler": {
+      "age": "0–3 歲",
+      "label": "親子繪本",
+      "subtitle": "大圖・短句・一起聽",
+      "icon": "book",
+      "intro": "版本導讀",
+      "pages": [
+        {
+          "scene": 0,
+          "title": "第一頁",
+          "passages": [
+            "a"
+          ]
+        }
+      ]
+    },
+    "theatre": {
+      "age": "4–6 歲",
+      "label": "故事劇場",
+      "subtitle": "輕動畫・清楚朗讀",
+      "icon": "play",
+      "intro": "版本導讀",
+      "pages": [
+        {
+          "scene": 0,
+          "title": "第一頁",
+          "passages": [
+            "a"
+          ]
+        }
+      ]
+    },
+    "comic": {
+      "age": "7–9 歲",
+      "label": "注音漫畫",
+      "subtitle": "看漫畫・自己翻頁",
+      "icon": "comic",
+      "intro": "版本導讀",
+      "pages": [
+        {
+          "scene": 0,
+          "title": "第一頁",
+          "passages": [
+            "a"
+          ]
+        }
+      ]
+    },
+    "reader": {
+      "age": "10–12 歲",
+      "label": "自主閱讀",
+      "subtitle": "完整短篇・安靜閱讀",
+      "icon": "text",
+      "intro": "版本導讀",
+      "pages": [
+        {
+          "scene": 0,
+          "title": "第一頁",
+          "passages": [
+            "a"
+          ]
+        }
+      ]
+    }
+  },
+  "scenes": [
+    "<svg class=\"scene\" viewBox=\"0 0 640 400\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"插畫說明\"><rect width=\"640\" height=\"400\" fill=\"#e5ecdf\"/></svg>"
+  ],
+  "media": {
+    "video": "narrated-preview.mp4",
+    "subtitles": "narrated.zh-TW.vtt",
+    "poster": "video-poster.png",
+    "productionKit": "story-production-kit.zip",
+    "narrationKit": "local-narration-kit.zip",
+    "manifest": "narration-assets.json",
+    "silentVideo": "silent-preview.mp4",
+    "silentSubtitles": "preview.zh-TW.vtt"
+  },
+  "audio": {
+    "toddler": [
+      "toddler-01.mp3"
+    ],
+    "theatre": [
+      "theatre-01.mp3"
+    ],
+    "comic": [
+      "comic-01.mp3"
+    ],
+    "reader": [
+      "reader-01.mp3"
+    ]
+  },
+  "discussion": {
+    "title": "一起聊聊",
+    "question": "你會怎麼做？",
+    "activity": "和家人分享你的想法。"
+  }
+}

@@ -15,6 +15,9 @@ for (const entry of entries) {
   await (await get(`story.html?s=${entry.slug}`)).arrayBuffer();
   const folder = `stories/${entry.slug}/`;
   const data = await (await get(`${folder}story.json`)).json();
+  for (const mode of Object.keys(data.versions)) {
+    await (await get(`story.html?s=${entry.slug}#story/${mode}/0`)).arrayBuffer();
+  }
   for (const file of new Set([entry.cover, ...Object.values(data.media), ...Object.values(data.audio).flat()])) {
     await (await get(folder + file)).arrayBuffer();
   }

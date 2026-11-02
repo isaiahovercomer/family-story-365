@@ -9,12 +9,22 @@
     "order": 1
   },
   {
-    "slug": "block-bridge",
-    "title": "積木小橋再試一次",
-    "description": "雨天蓋的小橋倒了，兄弟倆學著先停一下、說出需要，再一起試試看。",
+    "slug": "george-and-father",
+    "title": "喬治與父親",
+    "description": "釣魚時間已過，父親把大魚放回河裏，讓孩子學習活在神面前、說出事實真相。",
     "ages": "0–12 歲",
-    "cover": "video-poster.png",
+    "cover": "cover.svg",
     "published": "2026-11-02",
-    "order": 2
+    "order": 2,
+    "source": {
+      "publisher": "台中市召會",
+      "book": "家庭時光365",
+      "unit": "真",
+      "day": 11,
+      "dayLabel": "真單元第11天",
+      "printedPage": 18,
+      "pdf": "1-15.pdf",
+      "pdfPage": 21
+    }
   }
 ]

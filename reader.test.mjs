@@ -383,24 +383,35 @@ test('一般原創故事顯示親子練習，保留第一篇信仰內容', () =>
   assert.match(launch().element('#main').innerHTML, /一起讀經、禱告/);
 });
 
-test('第二篇有四版本21頁、待補影片規格與原創內容', () => {
-  assert.ok(catalog.some(entry => entry.slug === 'block-bridge'));
-  const d = json('./stories/block-bridge/story.json');
+test('第二篇依真-11原書製作四版本21頁與待補影片規格', () => {
+  assert.ok(catalog.some(entry => entry.slug === 'george-and-father'));
+  assert.ok(!catalog.some(entry => entry.slug === 'block-bridge'));
+  assert.ok(!existsSync(new URL('./stories/block-bridge/', import.meta.url)));
+  const d = json('./stories/george-and-father/story.json');
   assert.equal(d.videoStatus, 'pending');
   assert.equal(d.media.video, undefined);
-  assert.ok(d.familyPractice.text.trim());
-  assert.equal(d.story.verse, '');
-  assert.equal(d.story.prayer, '');
+  assert.equal(d.familyPractice, undefined);
+  assert.equal(d.story.title, '喬治與父親');
+  assert.equal(d.story.sourceId, '真-11');
+  assert.equal(d.story.source.printedPage, 18);
+  assert.equal(d.story.source.pdfPage, 21);
+  assert.equal(d.story.source.day, 11);
+  assert.deepEqual(catalog.find(e => e.slug === 'george-and-father').source, d.story.source);
+  assert.equal(d.story.verse, '不可使慈愛、真實離棄你：要繫在你頸項上，寫在你心版上。');
+  assert.equal(d.story.prayer, '主耶穌！你知道我做了什麼，說了什麼，我要活在你的面前。');
+  assert.match(d.story.original, /四點十二分/);
+  assert.match(d.story.original, /喬治．漢彌爾頓/);
+  assert.match(d.story.original, /放回河裡去/);
   for (const [mode, count] of [['toddler',6],['theatre',6],['comic',6],['reader',3]]) {
     assert.equal(d.versions[mode].pages.length, count);
     assert.equal(d.audio[mode].length, count);
   }
-  assert.ok(existsSync(new URL('./stories/block-bridge/VIDEO_SPEC.md', import.meta.url)));
+  assert.ok(existsSync(new URL('./stories/george-and-father/VIDEO_SPEC.md', import.meta.url)));
 });
 
 test('第二篇字幕依實際逐句時間對齊本文與音檔', () => {
-  const d = json('./stories/block-bridge/story.json');
-  const manifest = json('./stories/block-bridge/narration-assets.json');
+  const d = json('./stories/george-and-father/story.json');
+  const manifest = json('./stories/george-and-father/narration-assets.json');
   assert.equal(manifest.engine, 'sherpa-onnx');
   assert.equal(manifest.speed, 0.78);
   for (const page of manifest.pages) {
@@ -412,14 +423,31 @@ test('第二篇字幕依實際逐句時間對齊本文與音檔', () => {
       assert.ok(cue.start >= end && cue.end > cue.start && cue.end <= page.seconds);
       end = cue.end;
     }
-    const vtt = readFileSync(new URL(`./stories/block-bridge/${page.id}.zh-TW.vtt`, import.meta.url), 'utf8');
+    const vtt = readFileSync(new URL(`./stories/george-and-father/${page.id}.zh-TW.vtt`, import.meta.url), 'utf8');
     assert.ok(vtt.startsWith('WEBVTT\n'));
     for (const cue of page.cues) assert.ok(vtt.includes(cue.text));
   }
 });
 
-test('鋪好地墊使用攤開義的一聲注音', () => {
-  const passage = json('./stories/block-bridge/story.json').passages.q;
-  const chars = [...passage.text].filter(c => /\p{Script=Han}/u.test(c));
-  assert.equal(passage.zhuyin.split(/\s+/)[chars.indexOf('鋪')], 'ㄆㄨ');
+test('第二篇四版本每頁正確渲染朗讀路徑並保留經文禱告', () => {
+  const d = json('./stories/george-and-father/story.json');
+  for (const [mode, version] of Object.entries(d.versions)) {
+    for (let i = 0; i < version.pages.length; i++) {
+      const html = launch(`#story/${mode}/${i}`, 'george-and-father', d).element('#main').innerHTML;
+      assert.ok(html.includes(`./stories/george-and-father/${d.audio[mode][i]}`));
+      assert.match(html, /一起讀經、禱告/);
+      assert.doesNotMatch(html, /<video\b|undefined/);
+    }
+  }
+  for (const passage of Object.values(d.passages)) assert.doesNotMatch(passage.text, /裡|吃|著/);
+  for (const passage of Object.values(d.passages)) {
+    for (const syllable of passage.zhuyin.split(/\s+/)) {
+      assert.match(syllable, /^(?:˙[ㄅ-ㄩ]+|[ㄅ-ㄩ]+[ˊˇˋ]?)$/u);
+    }
+  }
+  assert.match(d.passages.k.zhuyin, /ㄔㄥˊ ㄨㄟˊ/);
+  assert.match(d.passages.v.zhuyin, /ㄊㄧㄝˇ ˙ㄉㄜ ㄕㄨㄛ/);
+  const p = d.passages.m;
+  const chars = [...p.text].filter(c => /\p{Script=Han}/u.test(c));
+  assert.equal(p.zhuyin.split(/\s+/)[chars.indexOf('強')], 'ㄑㄧㄤˇ');
 });

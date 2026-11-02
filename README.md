@@ -2,7 +2,7 @@
 
 給台灣 0–12 歲兒童家庭的分齡故事網站。純靜態 HTML、CSS、JavaScript，沒有建置步驟；GitHub Pages 使用 main 分支根目錄部署。
 
-首頁讀取故事目錄，每篇使用 `story.html?s=<slug>` 閱讀，保留四種分齡版本、注音、逐頁 AI 朗讀、影片字幕與離線製作包。目前收錄〈霜淇淋的錢〉，發音、注音及改寫仍待人工校對。
+首頁讀取故事目錄，每篇使用 `story.html?s=<slug>` 閱讀，保留四種分齡版本、注音、逐頁 AI 朗讀、影片字幕與離線製作包。目前收錄〈霜淇淋的錢〉與原創〈積木小橋再試一次〉。第二篇提供四分齡版本、21個 MP3 與字幕；影片與插畫待製作，詳見 [影片交接規格](stories/block-bridge/VIDEO_SPEC.md)。發音、注音及改寫仍待人工校對。
 
 ## 檔案結構
 
@@ -12,6 +12,7 @@ story.html                   共用故事頁
 assets/                      共用樣式、目錄、載入器與閱讀器
 stories/index.json           故事清單
 stories/ice-cream-money/     第一篇 JSON、21 個 MP3、MP4、VTT、封面與 ZIP
+stories/block-bridge/        第二篇 JSON、21 個 MP3、VTT、文字封面與影片交接規格
 stories/_template/           新故事資料範本
 reader.test.mjs              閱讀器與資料完整性測試
 tests/                       搬移前內容雜湊與 HTTP 驗證工具

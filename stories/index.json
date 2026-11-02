@@ -7,5 +7,14 @@
     "cover": "video-poster.png",
     "published": "2026-11-02",
     "order": 1
+  },
+  {
+    "slug": "block-bridge",
+    "title": "積木小橋再試一次",
+    "description": "雨天蓋的小橋倒了，兄弟倆學著先停一下、說出需要，再一起試試看。",
+    "ages": "0–12 歲",
+    "cover": "video-poster.png",
+    "published": "2026-11-02",
+    "order": 2
   }
 ]

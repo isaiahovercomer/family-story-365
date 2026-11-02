@@ -217,7 +217,12 @@ function storyMarkup() {
       <a href="${path(mode)}" class="${mode === route.mode ? 'active' : ''}"
         ${mode === route.mode ? 'aria-current="page"' : ''}>${icon(v.icon)}
         <span>${esc(v.label)}<small>${esc(v.age)}</small></span></a>`).join('')}</nav>
-    ${route.mode === 'theatre' && route.page === 0 ? `
+    ${route.mode === 'theatre' && route.page === 0 ? data.videoStatus === 'pending' ? `
+    <section class="end-card video-preview" aria-labelledby="video-title">
+      <h2 id="video-title">影片製作中</h2>
+      <p>可以先閱讀下方故事，或播放每頁朗讀。正式影片與插畫將另行製作。</p>
+      <a class="text-link" href="${asset(data.media.subtitles)}" download>下載劇場字幕（VTT）</a>
+    </section>` : `
     <section class="end-card video-preview" aria-labelledby="video-title">
       <h2 id="video-title">先看一段故事影片</h2>
       <p>${data.scenes.length} 個場景，搭配 AI 合成女聲與繁體中文字幕。朗讀發音與語氣仍為試聽版。</p>
@@ -263,19 +268,18 @@ function storyMarkup() {
         <p class="question">${esc(data.discussion.question)}</p>
         <p>${esc(data.discussion.activity)}</p>
         <a class="text-link" href="${path(route.mode)}">再讀一次 ${icon('replay', 17)}</a></section>` : ''}
-      <details class="faith"><summary>一起讀經、禱告</summary><div class="faith-content">
+      ${data.familyPractice ? `<details class="faith"><summary>${esc(data.familyPractice.title)}</summary><p>${esc(data.familyPractice.text)}</p></details>` : `<details class="faith"><summary>一起讀經、禱告</summary><div class="faith-content">
         <section><h3>一句經文</h3><p>『${esc(story.verse)}』─${esc(story.verseRef)}。</p></section>
-        <section><h3>一起禱告</h3><p>${esc(story.prayer)}</p></section></div></details>
+        <section><h3>一起禱告</h3><p>${esc(story.prayer)}</p></section></div></details>`}
       <details class="faith"><summary>查看原故事與版本說明</summary><p>${esc(story.original)}</p>
-        <p class="note">四個閱讀版本依原故事改寫；畫面是原創 SVG 示範插畫。劇場提供精簡字幕影片，
-          以及可逐頁播放的網頁輕動畫。旁白由本機模型生成，並非真人錄音；發音與語氣仍待校對。</p>
+        <p class="note">${data.productionNote ? esc(data.productionNote) : '四個閱讀版本依原故事改寫；畫面是原創 SVG 示範插畫。劇場提供精簡字幕影片，以及可逐頁播放的網頁輕動畫。旁白由本機模型生成，並非真人錄音；發音與語氣仍待校對。'}</p>
       </details>
       <details class="faith"><summary>給家長：下載本機製作包</summary>
-        <p>包含這篇故事的旁白稿、插畫、朗讀腳本與影片組裝工具。</p>
-        <p>朗讀腳本需在Windows執行；聲音品質與可用性仍待裝置實測。</p>
+        <p>${data.videoStatus === 'pending' ? '包含這篇故事的旁白稿、朗讀音檔、字幕與影片製作交接規格。' : '包含這篇故事的旁白稿、插畫、朗讀腳本與影片組裝工具。'}</p>
+        <p>${esc(data.kitNote || '朗讀腳本需在Windows執行；聲音品質與可用性仍待裝置實測。')}</p>
         <a class="text-link" href="${asset(data.media.productionKit)}" download>下載製作包（ZIP）</a>
         <p><a class="text-link" href="${asset(data.media.narrationKit)}" download>下載離線 AI 朗讀製作包</a></p>
-        <p class="note">本機語音引擎：sherpa-onnx／MeloTTS。一般中文模型，尚未完成台灣口音校對。</p>
+        <p class="note">${esc(data.narrationNote || '本機語音引擎：sherpa-onnx／MeloTTS。一般中文模型，尚未完成台灣口音校對。')}</p>
       </details>
       <p class="source">故事來源：家庭時光365 · ${esc(story.sourceId)} · <a href="${esc(story.sourceURL)}"
         target="_blank" rel="noopener">原始教材</a>。改寫與注音為示範校對稿。</p>

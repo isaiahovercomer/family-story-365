@@ -10,7 +10,7 @@ const data = JSON.parse(readFileSync(new URL('./stories/ice-cream-money/story.js
 const code = readFileSync(new URL('./assets/reader.js', import.meta.url), 'utf8')
   .replace('export function startReader(data, basePath, slug) {', '').replace(/\}\s*$/, '');
 
-function launch(hash = '#story/theatre/0', slug = 'ice-cream-money') {
+function launch(hash = '#story/theatre/0', slug = 'ice-cream-money', storyData = data) {
   const handlers = new Map();
   const elements = new Map();
   const effects = [];
@@ -37,7 +37,7 @@ function launch(hash = '#story/theatre/0', slug = 'ice-cream-money') {
   };
   const location = {hash};
   const context = vm.createContext({
-    document, location, data, slug, basePath: `./stories/${slug}/`,
+    document, location, data: storyData, slug, basePath: `./stories/${slug}/`,
     window: {
       speechSynthesis: {cancel() {effects.push(['cancel']);}, getVoices: () => [], addEventListener() {}},
       addEventListener(type, listener) {handlers.set(`window:${type}`, listener);},
@@ -200,8 +200,14 @@ test('所有故事四版本、注音、分頁與資產引用完整', () => {
       assert.ok(!file.startsWith('/') && !file.split('/').includes('..'));
       assert.ok(existsSync(new URL(`./stories/${entry.slug}/${file}`, import.meta.url)), file);
     };
-    for (const key of ['id', 'title', 'category', 'description', 'sourceId', 'sourceURL', 'verse', 'verseRef', 'prayer', 'original']) {
+    for (const key of ['id', 'title', 'category', 'description', 'sourceId', 'sourceURL', 'original']) {
       assert.ok(d.story[key]?.trim(), `${entry.slug}: ${key}`);
+    }
+    if (d.familyPractice) {
+      assert.ok(d.familyPractice.title?.trim());
+      assert.ok(d.familyPractice.text?.trim());
+    } else {
+      for (const key of ['verse', 'verseRef', 'prayer']) assert.ok(d.story[key]?.trim());
     }
     assert.equal(entry.title, d.story.title);
     for (const key of ['title', 'question', 'activity']) assert.ok(d.discussion[key]?.trim());
@@ -223,9 +229,11 @@ test('所有故事四版本、注音、分頁與資產引用完整', () => {
       assert.ok(passage.text?.trim());
       assert.equal([...passage.text].filter(c => /\p{Script=Han}/u.test(c)).length, passage.zhuyin.trim().split(/\s+/).length);
     }
-    for (const key of ['video','subtitles','poster','productionKit','narrationKit','manifest']) {
+    for (const key of ['subtitles','poster','productionKit','narrationKit','manifest']) {
       assert.ok(d.media[key]);
     }
+    if (d.videoStatus === 'pending') assert.equal(d.media.video, undefined);
+    else fileExists(d.media.video);
     Object.values(d.media).forEach(fileExists);
     const manifest = json(`./stories/${entry.slug}/${d.media.manifest}`);
     const files = Object.values(d.audio).flat();
@@ -238,7 +246,9 @@ test('所有故事四版本、注音、分頁與資產引用完整', () => {
   }
 });
 
-test('第一篇原故事、逐句文字注音及四版本資料與搬移前完全一致', () => {
+// 刻意校正原文：依 1-15.pdf 第20頁（真-10）將「不是你付的錢嗎？」還原為「不是你付的錢麼？」。
+// 同步更新內容雜湊基準；逐句文字注音與四個分齡改寫版本維持不變。
+test('第一篇內容符合原文校正後的雜湊基準', () => {
   const original = {story: data.story, passages: data.passages, versions: data.versions};
   const expected = readFileSync(new URL('./tests/original-content.sha256', import.meta.url), 'utf8').trim();
   assert.equal(createHash('sha256').update(JSON.stringify(original)).digest('hex'), expected);
@@ -311,7 +321,7 @@ async function loadCatalog(hash = '', entries = catalog, ok = true) {
 
 test('首頁依清單排序產生多篇故事卡片與相對連結', async () => {
   const extra = {...catalog[0], slug: 'second-story', title: '另一篇故事', order: 0};
-  const app = await loadCatalog('', [...catalog, extra]);
+  const app = await loadCatalog('', [catalog[0], extra]);
   assert.equal(app.node.children.length, 2);
   assert.equal(app.node.children[0].href, './story.html?s=second-story');
   assert.equal(app.node.children[0].children[0].src, './stories/second-story/video-poster.png');
@@ -353,4 +363,93 @@ test('新增故事的特殊標題在閱讀器中安全顯示', () => {
     assert.ok(html.includes('aria-label="第 1 頁：一起讀 &quot;新故事&quot; &lt;第一頁&gt;"'));
     assert.ok(html.includes('<h2>一起讀 &quot;新故事&quot; &lt;第一頁&gt;</h2>'));
   } finally {data.versions.reader.pages[0].title = originalTitle;}
+});
+
+
+test('待補影片保留逐頁朗讀且不輸出空影片來源', () => {
+  const pending = structuredClone(data);
+  pending.videoStatus = 'pending';
+  delete pending.media.video;
+  const html = launch('#story/theatre/0', 'pending-story', pending).element('#main').innerHTML;
+  assert.match(html, /影片製作中/);
+  assert.doesNotMatch(html, /<video\b|undefined/);
+  assert.match(html, /theatre-01.mp3/);
+});
+
+test('一般原創故事顯示親子練習，保留第一篇信仰內容', () => {
+  const secular = structuredClone(data);
+  secular.familyPractice = {title: '一起停一下', text: '吸一口氣，說說需要。'};
+  const html = launch('#story/reader/0', 'secular-story', secular).element('#main').innerHTML;
+  assert.match(html, /一起停一下/);
+  assert.doesNotMatch(html, /一起讀經、禱告|一句經文|一起禱告/);
+  assert.match(launch().element('#main').innerHTML, /一起讀經、禱告/);
+});
+
+test('第二篇依真-11原書製作四版本21頁與待補影片規格', () => {
+  assert.ok(catalog.some(entry => entry.slug === 'george-and-father'));
+  assert.ok(!catalog.some(entry => entry.slug === 'block-bridge'));
+  assert.ok(!existsSync(new URL('./stories/block-bridge/', import.meta.url)));
+  const d = json('./stories/george-and-father/story.json');
+  assert.equal(d.videoStatus, 'pending');
+  assert.equal(d.media.video, undefined);
+  assert.equal(d.familyPractice, undefined);
+  assert.equal(d.story.title, '喬治與父親');
+  assert.equal(d.story.sourceId, '真-11');
+  assert.equal(d.story.source.printedPage, 18);
+  assert.equal(d.story.source.pdfPage, 21);
+  assert.equal(d.story.source.day, 11);
+  assert.deepEqual(catalog.find(e => e.slug === 'george-and-father').source, d.story.source);
+  assert.equal(d.story.verse, '不可使慈愛、真實離棄你：要繫在你頸項上，寫在你心版上。');
+  assert.equal(d.story.prayer, '主耶穌！你知道我做了什麼，說了什麼，我要活在你的面前。');
+  assert.match(d.story.original, /四點十二分/);
+  assert.match(d.story.original, /喬治．漢彌爾頓/);
+  assert.match(d.story.original, /放回河裡去/);
+  for (const [mode, count] of [['toddler',6],['theatre',6],['comic',6],['reader',3]]) {
+    assert.equal(d.versions[mode].pages.length, count);
+    assert.equal(d.audio[mode].length, count);
+  }
+  assert.ok(existsSync(new URL('./stories/george-and-father/VIDEO_SPEC.md', import.meta.url)));
+});
+
+test('第二篇字幕依實際逐句時間對齊本文與音檔', () => {
+  const d = json('./stories/george-and-father/story.json');
+  const manifest = json('./stories/george-and-father/narration-assets.json');
+  assert.equal(manifest.engine, 'sherpa-onnx');
+  assert.equal(manifest.speed, 0.78);
+  for (const page of manifest.pages) {
+    const index = Number(page.id.slice(-2)) - 1;
+    const ids = d.versions[page.mode].pages[index].passages;
+    assert.deepEqual(page.cues.map(cue => cue.text), ids.map(id => d.passages[id].text));
+    let end = 0;
+    for (const cue of page.cues) {
+      assert.ok(cue.start >= end && cue.end > cue.start && cue.end <= page.seconds);
+      end = cue.end;
+    }
+    const vtt = readFileSync(new URL(`./stories/george-and-father/${page.id}.zh-TW.vtt`, import.meta.url), 'utf8');
+    assert.ok(vtt.startsWith('WEBVTT\n'));
+    for (const cue of page.cues) assert.ok(vtt.includes(cue.text));
+  }
+});
+
+test('第二篇四版本每頁正確渲染朗讀路徑並保留經文禱告', () => {
+  const d = json('./stories/george-and-father/story.json');
+  for (const [mode, version] of Object.entries(d.versions)) {
+    for (let i = 0; i < version.pages.length; i++) {
+      const html = launch(`#story/${mode}/${i}`, 'george-and-father', d).element('#main').innerHTML;
+      assert.ok(html.includes(`./stories/george-and-father/${d.audio[mode][i]}`));
+      assert.match(html, /一起讀經、禱告/);
+      assert.doesNotMatch(html, /<video\b|undefined/);
+    }
+  }
+  for (const passage of Object.values(d.passages)) assert.doesNotMatch(passage.text, /裡|吃|著/);
+  for (const passage of Object.values(d.passages)) {
+    for (const syllable of passage.zhuyin.split(/\s+/)) {
+      assert.match(syllable, /^(?:˙[ㄅ-ㄩ]+|[ㄅ-ㄩ]+[ˊˇˋ]?)$/u);
+    }
+  }
+  assert.match(d.passages.k.zhuyin, /ㄔㄥˊ ㄨㄟˊ/);
+  assert.match(d.passages.v.zhuyin, /ㄊㄧㄝˇ ˙ㄉㄜ ㄕㄨㄛ/);
+  const p = d.passages.m;
+  const chars = [...p.text].filter(c => /\p{Script=Han}/u.test(c));
+  assert.equal(p.zhuyin.split(/\s+/)[chars.indexOf('強')], 'ㄑㄧㄤˇ');
 });

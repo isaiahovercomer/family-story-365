@@ -246,7 +246,9 @@ test('所有故事四版本、注音、分頁與資產引用完整', () => {
   }
 });
 
-test('第一篇原故事、逐句文字注音及四版本資料與搬移前完全一致', () => {
+// 刻意校正原文：依 1-15.pdf 第20頁（真-10）將「不是你付的錢嗎？」還原為「不是你付的錢麼？」。
+// 同步更新內容雜湊基準；逐句文字注音與四個分齡改寫版本維持不變。
+test('第一篇內容符合原文校正後的雜湊基準', () => {
   const original = {story: data.story, passages: data.passages, versions: data.versions};
   const expected = readFileSync(new URL('./tests/original-content.sha256', import.meta.url), 'utf8').trim();
   assert.equal(createHash('sha256').update(JSON.stringify(original)).digest('hex'), expected);

@@ -385,13 +385,20 @@ test('一般原創故事顯示親子練習，保留第一篇信仰內容', () =>
   assert.match(launch().element('#main').innerHTML, /一起讀經、禱告/);
 });
 
-test('第二篇依真-11原書製作四版本21頁與待補影片規格', () => {
+test('第二篇依真-11原書製作四版本21頁與正式影片', () => {
   assert.ok(catalog.some(entry => entry.slug === 'george-and-father'));
   assert.ok(!catalog.some(entry => entry.slug === 'block-bridge'));
   assert.ok(!existsSync(new URL('./stories/block-bridge/', import.meta.url)));
   const d = json('./stories/george-and-father/story.json');
-  assert.equal(d.videoStatus, 'pending');
-  assert.equal(d.media.video, undefined);
+  assert.notEqual(d.videoStatus, 'pending');
+  assert.equal(d.media.video, 'narrated-preview.mp4');
+  assert.equal(d.media.subtitles, 'narrated.zh-TW.vtt');
+  assert.ok(existsSync(new URL(`./stories/george-and-father/${d.media.video}`, import.meta.url)));
+  const html = launch('#story/theatre/0', 'george-and-father', d).element('#main').innerHTML;
+  assert.match(html, /<video\b/);
+  assert.match(html, /<source src="\.\/stories\/george-and-father\/narrated-preview\.mp4" type="video\/mp4">/);
+  assert.match(html, /<track kind="subtitles" src="\.\/stories\/george-and-father\/narrated\.zh-TW\.vtt" srclang="zh-TW" label="繁體中文" default>/);
+  assert.doesNotMatch(html, /影片製作中|undefined/);
   assert.equal(d.familyPractice, undefined);
   assert.equal(d.story.title, '喬治與父親');
   assert.equal(d.story.sourceId, '真-11');
@@ -438,7 +445,9 @@ test('第二篇四版本每頁正確渲染朗讀路徑並保留經文禱告', ()
       const html = launch(`#story/${mode}/${i}`, 'george-and-father', d).element('#main').innerHTML;
       assert.ok(html.includes(`./stories/george-and-father/${d.audio[mode][i]}`));
       assert.match(html, /一起讀經、禱告/);
-      assert.doesNotMatch(html, /<video\b|undefined/);
+      assert.doesNotMatch(html, /undefined/);
+      if (mode === 'theatre' && i === 0) assert.match(html, /<video\b/);
+      else assert.doesNotMatch(html, /<video\b/);
     }
   }
   for (const passage of Object.values(d.passages)) assert.doesNotMatch(passage.text, /裡|吃|著/);

@@ -377,13 +377,13 @@
     ]
   },
   "media": {
+    "video": "narrated-preview.mp4",
     "subtitles": "narrated.zh-TW.vtt",
-    "poster": "cover.svg",
+    "poster": "video-poster.png",
     "productionKit": "story-production-kit.zip",
     "narrationKit": "local-narration-kit.zip",
     "manifest": "narration-assets.json"
   },
-  "videoStatus": "pending",
   "discussion": {
     "title": "活在神面前",
     "question": "孩子為甚麼想把魚帶回家？父親為甚麼仍把魚放回河裏？",
